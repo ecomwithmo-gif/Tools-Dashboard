@@ -1,16 +1,40 @@
 {
-  "name": "tools-dashboard-root",
-  "version": "1.0.0",
+  "name": "amazon-analyzer",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "start": "concurrently --kill-others \"npm run dashboard\" \"npm run tool:scouter\" \"npm run tool:invoice\" \"npm run tool:email:server\" \"npm run tool:email:client\"",
-    "dashboard": "cd dashboard && npm start",
-    "tool:scouter": "cd \"Antigravity scouter\" && npm run dev",
-    "tool:invoice": "cd \"Invoice Generator For Ungating\" && npm run dev -- --port 5173",
-    "tool:email:server": "cd \"Html Email Thing/server\" && node index.js",
-    "tool:email:client": "cd \"Html Email Thing/client\" && npm run dev -- --port 5174",
-    "install:dashboard": "cd dashboard && npm install"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
+    "framer-motion": "^11.18.2",
+    "googleapis": "^170.0.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.0.0",
+    "lucide-react": "^0.378.0",
+    "next": "14.2.3",
+    "puppeteer": "^24.35.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "recharts": "^3.6.0",
+    "tailwind-merge": "^2.6.0",
+    "xlsx": "^0.18.5",
+    "xlsx-js-style": "^1.2.0"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10.4.23",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "postcss": "^8",
+    "postcss-import": "^16.1.1",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
   }
 }
