@@ -1,0 +1,12 @@
+{
+  "name": "tools-dashboard",
+  "version": "1.0.0",
+  "description": "Dashboard to navigate between tools",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
