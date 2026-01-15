@@ -11,11 +11,31 @@ import {
   generateSalesOrderNumber
 } from '@/features/invoice/utils/invoiceUtils'
 
-export default function InvoicePage() {
-  const [lineItems, setLineItems] = useState([])
-  const [invoiceData, setInvoiceData] = useState(null)
+interface InvoiceItem {
+  id: number;
+  imageUrl?: string;
+  sku: string;
+  item: string;
+  upc?: string;
+  units: number;
+  description: string;
+  unitPrice: number;
+  [key: string]: any;
+}
 
-  const addLineItem = (item) => {
+interface InvoiceData {
+  invoiceNumber: string;
+  invoiceDate: string;
+  orderDate: string;
+  poNumber: string;
+  salesOrderNumber: string;
+}
+
+export default function InvoicePage() {
+  const [lineItems, setLineItems] = useState<InvoiceItem[]>([])
+  const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null)
+
+  const addLineItem = (item: any) => {
     // Generate invoice data when adding first item
     if (lineItems.length === 0 && invoiceData === null) {
       setInvoiceData({
@@ -29,7 +49,7 @@ export default function InvoicePage() {
     setLineItems(prevItems => [...prevItems, { ...item, id: Date.now() + Math.random() }])
   }
 
-  const addMultipleItems = (items) => {
+  const addMultipleItems = (items: any[]) => {
     // Generate invoice data when adding first items
     if (lineItems.length === 0 && invoiceData === null) {
       setInvoiceData({
@@ -44,11 +64,11 @@ export default function InvoicePage() {
     setLineItems(prevItems => [...prevItems, ...newItems])
   }
 
-  const removeLineItem = (id) => {
+  const removeLineItem = (id: number) => {
     setLineItems(lineItems.filter(item => item.id !== id))
   }
 
-  const updateLineItem = (id, field, value) => {
+  const updateLineItem = (id: number, field: string, value: any) => {
     setLineItems(lineItems.map(item => 
       item.id === id ? { ...item, [field]: value } : item
     ))
