@@ -2,6 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   experimental: {
+    serverComponentsExternalPackages: ['@sparticuz/chromium'],
     serverActions: {
       bodySizeLimit: '50mb',
     },

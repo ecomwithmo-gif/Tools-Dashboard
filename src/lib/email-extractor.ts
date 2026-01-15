@@ -1,4 +1,4 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import type { Browser, Page } from 'puppeteer-core';
 
 export class EmailExtractor {
     browser: Browser | null = null;
@@ -19,10 +19,24 @@ export class EmailExtractor {
 
     async init() {
         if (!this.browser) {
-            this.browser = await puppeteer.launch({
-                headless: true, // "new" is deprecated or true/false
-                args: ['--no-sandbox', '--disable-setuid-sandbox']
-            });
+            if (process.env.NODE_ENV === 'production') {
+                const chromium = await import('@sparticuz/chromium').then(mod => mod.default) as any;
+                const puppeteerCore = await import('puppeteer-core').then(mod => mod.default);
+                
+                this.browser = await puppeteerCore.launch({
+                    args: chromium.args,
+                    defaultViewport: chromium.defaultViewport,
+                    executablePath: await chromium.executablePath(),
+                    headless: chromium.headless,
+                    ignoreHTTPSErrors: true,
+                } as any) as unknown as Browser;
+            } else {
+                const puppeteer = await import('puppeteer').then(mod => mod.default);
+                this.browser = await puppeteer.launch({
+                    headless: true,
+                    args: ['--no-sandbox', '--disable-setuid-sandbox']
+                }) as unknown as Browser;
+            }
         }
     }
 

@@ -26,20 +26,45 @@ export default function UrlOpenerPage() {
     setInput('');
   };
 
-  const handleRunBatch = () => {
+  // Helper function for delays
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const handleRunBatch = async () => {
     const pendingUrls = urls.filter(u => u.status === 'pending');
     const batch = pendingUrls.slice(0, batchSize);
+    let blocked = false;
 
-    batch.forEach(item => {
-      window.open(item.url, '_blank');
-    });
-
-    setUrls(prev => prev.map(u => {
-      if (batch.find(b => b.id === u.id)) {
-        return { ...u, status: 'opened' };
+    // Process one by one with delay
+    for (const item of batch) {
+      // Small delay between opens to help avoid popup blockers
+      if (item !== batch[0]) {
+        await sleep(300); 
       }
-      return u;
-    }));
+      
+      const newWindow = window.open(item.url, '_blank');
+      
+      // Check if popup was blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        blocked = true;
+        // Don't mark as opened if we know it failed, or maybe mark as "error"
+        // For simplicity, we'll stop processing if we detect a block
+        alert(`Popup blocked for ${item.url}. Please allow popups for this site.`);
+        break; 
+      }
+
+      // Mark as opened locally
+      setUrls(prev => prev.map(u => {
+        if (u.id === item.id) {
+          return { ...u, status: 'opened' };
+        }
+        return u;
+      }));
+    }
+
+    if (blocked) {
+      // Optional: clearer UI indication could go here
+      console.warn('Popups appear to be blocked.');
+    }
   };
 
   const handleClear = () => {
