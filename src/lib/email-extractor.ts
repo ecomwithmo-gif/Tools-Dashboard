@@ -106,7 +106,7 @@ export class EmailExtractor {
             }).map(l => l.href);
 
             // Dedup links
-            const uniqueInterestingLinks = [...new Set(interestingLinks)].slice(0, 3); // Max 3 subpages
+            const uniqueInterestingLinks = Array.from(new Set(interestingLinks)).slice(0, 3); // Max 3 subpages
 
             // 3. Visit Interesting Pages
             for (const link of uniqueInterestingLinks) {
