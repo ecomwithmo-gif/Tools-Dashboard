@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Rocket, FileText, Mail } from 'lucide-react';
+import { Rocket, FileText, Mail, Globe } from 'lucide-react';
 
 export default function Dashboard() {
   return (
@@ -53,6 +53,18 @@ export default function Dashboard() {
             <h2 className="text-xl font-semibold mb-2 text-gray-900">URL Opener</h2>
             <p className="text-gray-500 text-sm leading-relaxed">
                Batch open URLs in new tabs
+            </p>
+          </div>
+        </Link>
+
+        <Link href="/domain-cleaner" className="group text-center">
+          <div className="bg-white rounded-2xl p-10 shadow-sm border border-transparent transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-gray-200">
+            <div className="text-5xl mb-6 flex justify-center text-cyan-500">
+              <Globe size={64} strokeWidth={1.5} />
+            </div>
+            <h2 className="text-xl font-semibold mb-2 text-gray-900">Domain Cleaner</h2>
+            <p className="text-gray-500 text-sm leading-relaxed">
+               Clean and deduplicate URLs to base domains
             </p>
           </div>
         </Link>
