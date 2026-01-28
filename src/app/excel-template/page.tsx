@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileSpreadsheet, Download, X, File as FileIcon, Loader2 } from 'lucide-react';
+import { ArrowLeft, Upload, FileSpreadsheet, Download, X, File as FileIcon, Loader2, Trash2 } from 'lucide-react';
 import * as ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
+import { saveTemplate, getTemplate, deleteTemplate } from '@/lib/db';
 
 export default function ExcelTemplate() {
     const [templateFile, setTemplateFile] = useState<File | null>(null);
@@ -13,13 +14,44 @@ export default function ExcelTemplate() {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Load saved template on mount
+    useEffect(() => {
+        const loadSavedTemplate = async () => {
+            try {
+                const saved = await getTemplate();
+                if (saved) {
+                    setTemplateFile(saved);
+                }
+            } catch (e) {
+                console.error('Failed to load saved template', e);
+            }
+        };
+        loadSavedTemplate();
+    }, []);
+
     // Handle Template Upload
-    const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
-            setTemplateFile(e.target.files[0]);
+            const file = e.target.files[0];
+            setTemplateFile(file);
             setError(null);
-            // Reset processed files as template changed
             setProcessedFiles([]);
+
+            try {
+                await saveTemplate(file);
+            } catch (e) {
+                console.error('Failed to save template persistence', e);
+            }
+        }
+    };
+
+    const clearTemplate = async () => {
+        try {
+            await deleteTemplate();
+            setTemplateFile(null);
+            setProcessedFiles([]);
+        } catch (e) {
+            console.error('Failed to delete template', e);
         }
     };
 
@@ -150,9 +182,16 @@ export default function ExcelTemplate() {
 
                         {/* 1. Template Upload */}
                         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                            <h2 className="text-lg font-semibold mb-4 flex items-center">
-                                <span className="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
-                                Upload Template
+                            <h2 className="text-lg font-semibold mb-4 flex items-center justify-between">
+                                <span className="flex items-center">
+                                    <span className="bg-blue-100 text-blue-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                                    Upload Template
+                                </span>
+                                {templateFile && (
+                                    <span className="text-xs font-normal text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-100">
+                                        Saved in Browser
+                                    </span>
+                                )}
                             </h2>
 
                             <div className="relative">
@@ -165,20 +204,30 @@ export default function ExcelTemplate() {
                                 />
                                 <label
                                     htmlFor="template-upload"
-                                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${templateFile ? 'border-green-300 bg-green-50/30' : 'border-gray-300 hover:bg-gray-50'}`}
                                 >
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                        <FileSpreadsheet className="w-8 h-8 text-gray-400 mb-2" />
+                                        <FileSpreadsheet className={`w-8 h-8 mb-2 ${templateFile ? 'text-green-500' : 'text-gray-400'}`} />
                                         <p className="text-sm text-gray-500">
                                             {templateFile ? (
-                                                <span className="font-semibold text-blue-600">{templateFile.name}</span>
+                                                <span className="font-semibold text-green-700">{templateFile.name}</span>
                                             ) : (
                                                 <span>Click to upload Template (.xlsx)</span>
                                             )}
                                         </p>
+                                        {templateFile && <p className="text-xs text-gray-400 mt-1">Click to replace</p>}
                                     </div>
                                 </label>
                             </div>
+
+                            {templateFile && (
+                                <button
+                                    onClick={clearTemplate}
+                                    className="mt-3 text-xs text-red-500 hover:text-red-700 flex items-center justify-center w-full py-2 hover:bg-red-50 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={14} className="mr-1" /> Remove Saved Template
+                                </button>
+                            )}
                         </div>
 
                         {/* 2. Data Files Upload */}
