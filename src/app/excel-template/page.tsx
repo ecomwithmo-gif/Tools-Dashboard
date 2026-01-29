@@ -99,9 +99,15 @@ export default function ExcelTemplate() {
         // eslint-disable-next-line no-control-regex
         clean = clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF\uFFFE\uFFFF]/g, '');
 
-        // Excel cell limit is 32,767 characters
-        if (clean.length > 32700) {
-            return clean.substring(0, 32700) + '...[TRUNCATED]';
+        // Excel cell limit is 32,767 characters. 
+        if (clean.length > 32000) {
+            let truncated = clean.substring(0, 32000);
+            // Check if we cut off in the middle of a surrogate pair
+            // A huge string ending with a high surrogate (\uD800-\uDBFF) means the low surrogate was cut off
+            if (/[\uD800-\uDBFF]$/.test(truncated)) {
+                truncated = truncated.slice(0, -1);
+            }
+            return truncated + '...[TRUNCATED]';
         }
         return clean;
     };
@@ -109,17 +115,25 @@ export default function ExcelTemplate() {
     // Convert File to Workbook
     const readDataFile = async (file: File): Promise<string[][]> => {
         const arrayBuffer = await readFileAsArrayBuffer(file);
-        // Use 'string' type to try to force raw read if possible, but 'array' is safer for binary .xlsx
-        const workbook = XLSX.read(arrayBuffer, { type: 'array', raw: false,  cellText: false, cellDates: false });
+        // raw: true to avoid formatting dates/numbers as strings based on Excel rules
+        const workbook = XLSX.read(arrayBuffer, { type: 'array', raw: true, cellText: false, cellDates: false });
         
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: '' }) as any[][];
+        // raw: true gives us the underlying values (numbers, dates, etc.)
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: true, defval: '' }) as any[][];
 
         return jsonData.map(row => 
             row.map((cell: any) => {
                 if (cell === null || cell === undefined) return '';
+                
+                // If it's a number, convert to string safely
+                if (typeof cell === 'number') {
+                    // Avoid scientific notation for large integers (like barcodes)
+                    return cell.toLocaleString('fullwide', { useGrouping: false });
+                }
+                
                 // Ensure we get the rawest string possible
                 return sanitizeString(String(cell)); 
             })
