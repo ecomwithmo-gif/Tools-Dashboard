@@ -96,7 +96,7 @@ export default function ExcelTemplate() {
         
         // Remove control characters (0-31 except 9,10,13) and non-characters
         // Also handling potentially dangerous surrogates if they are lone
-        // eslint-disable-next-line on-control-regex
+        // eslint-disable-next-line no-control-regex
         clean = clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF\uFFFE\uFFFF]/g, '');
 
         // Excel cell limit is 32,767 characters
