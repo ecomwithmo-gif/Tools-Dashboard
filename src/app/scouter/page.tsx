@@ -541,7 +541,7 @@ export default function Home() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    Automatically generates a smart "Order Draft" maximizing potential based on this budget.
+                    Automatically generates a smart &quot;Order Draft&quot; maximizing potential based on this budget.
                   </p>
                 </div>
 
@@ -562,8 +562,9 @@ export default function Home() {
                     />
                   </div>
                   <p className="text-[10px] text-slate-500">
-                    Automatically generates a smart "Order Draft" maximizing potential based on this budget.
+                    Automatically generates a smart &quot;Order Draft&quot; maximizing potential based on this budget.
                   </p>
+
                 </div>
               </div>
 
