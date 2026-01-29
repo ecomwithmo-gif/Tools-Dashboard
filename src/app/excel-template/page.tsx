@@ -89,13 +89,34 @@ export default function ExcelTemplate() {
         });
     };
 
+    // Sanitize string to remove invalid XML characters
+    const sanitizeString = (str: string): string => {
+        if (!str) return '';
+        // Remove control characters that are not allowed in XML (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F)
+        // eslint-disable-next-line no-control-regex
+        return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    };
+
     // Convert File to Workbook (using XLSX for reading data files as it handles CSV better)
-    const readDataFile = async (file: File): Promise<any[][]> => {
+    const readDataFile = async (file: File): Promise<string[][]> => {
         const arrayBuffer = await readFileAsArrayBuffer(file);
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const workbook = XLSX.read(arrayBuffer, { type: 'array', raw: false }); // raw: false tries to format, but we need raw strings sometimes.
+        // Actually, to get raw strings and NOT parse numbers, we should use { type: 'string', raw: true } if we read as string/binary, 
+        // but since we read buffer, let's just process the sheet.
+        
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        return XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        
+        // Use header: 1 to get array of arrays
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false,  defval: '' }) as any[][];
+
+        // Explicitly convert EVERYTHING to string to preserve EXACT content (like leading zeros)
+        return jsonData.map(row => 
+            row.map((cell: any) => {
+                if (cell === null || cell === undefined) return '';
+                return sanitizeString(String(cell));
+            })
+        );
     };
 
     const processFiles = async () => {
@@ -121,6 +142,18 @@ export default function ExcelTemplate() {
 
                 // Add new sheet "Raw Imported"
                 const newSheet = workbook.addWorksheet('Raw Imported');
+
+                // Determine max columns to set text format
+                let maxCols = 0;
+                dataRows.forEach(row => {
+                    if (row.length > maxCols) maxCols = row.length;
+                });
+
+                // Set column format to Text ("@") for ALL columns that will have data
+                for (let i = 1; i <= maxCols; i++) {
+                    const col = newSheet.getColumn(i);
+                    col.numFmt = '@'; // Text format
+                }
 
                 // Add rows to new sheet
                 newSheet.addRows(dataRows);
