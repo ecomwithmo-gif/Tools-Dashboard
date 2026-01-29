@@ -89,32 +89,39 @@ export default function ExcelTemplate() {
         });
     };
 
-    // Sanitize string to remove invalid XML characters
+    // Sanitize string to remove invalid XML characters and truncate to Excel limit
     const sanitizeString = (str: string): string => {
         if (!str) return '';
-        // Remove control characters that are not allowed in XML (0x00-0x08, 0x0B-0x0C, 0x0E-0x1F)
-        // eslint-disable-next-line no-control-regex
-        return str.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+        let clean = String(str);
+        
+        // Remove control characters (0-31 except 9,10,13) and non-characters
+        // Also handling potentially dangerous surrogates if they are lone
+        // eslint-disable-next-line on-control-regex
+        clean = clean.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\uD800-\uDFFF\uFFFE\uFFFF]/g, '');
+
+        // Excel cell limit is 32,767 characters
+        if (clean.length > 32700) {
+            return clean.substring(0, 32700) + '...[TRUNCATED]';
+        }
+        return clean;
     };
 
-    // Convert File to Workbook (using XLSX for reading data files as it handles CSV better)
+    // Convert File to Workbook
     const readDataFile = async (file: File): Promise<string[][]> => {
         const arrayBuffer = await readFileAsArrayBuffer(file);
-        const workbook = XLSX.read(arrayBuffer, { type: 'array', raw: false }); // raw: false tries to format, but we need raw strings sometimes.
-        // Actually, to get raw strings and NOT parse numbers, we should use { type: 'string', raw: true } if we read as string/binary, 
-        // but since we read buffer, let's just process the sheet.
+        // Use 'string' type to try to force raw read if possible, but 'array' is safer for binary .xlsx
+        const workbook = XLSX.read(arrayBuffer, { type: 'array', raw: false,  cellText: false, cellDates: false });
         
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         
-        // Use header: 1 to get array of arrays
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false,  defval: '' }) as any[][];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, raw: false, defval: '' }) as any[][];
 
-        // Explicitly convert EVERYTHING to string to preserve EXACT content (like leading zeros)
         return jsonData.map(row => 
             row.map((cell: any) => {
                 if (cell === null || cell === undefined) return '';
-                return sanitizeString(String(cell));
+                // Ensure we get the rawest string possible
+                return sanitizeString(String(cell)); 
             })
         );
     };
@@ -129,37 +136,49 @@ export default function ExcelTemplate() {
         try {
             const results = [];
 
-            // Load Template ArrayBuffer once
             const templateBuffer = await readFileAsArrayBuffer(templateFile);
 
             for (const dataFile of dataFiles) {
-                // Read data file content
                 const dataRows = await readDataFile(dataFile);
 
-                // Load template into ExcelJS
                 const workbook = new ExcelJS.Workbook();
                 await workbook.xlsx.load(templateBuffer);
 
-                // Add new sheet "Raw Imported"
-                const newSheet = workbook.addWorksheet('Raw Imported');
+                // Use a safe sheet name
+                const sheetName = 'Raw Imported';
+                // Remove existing sheet if it exists to avoid collision logic issues
+                const existingSheet = workbook.getWorksheet(sheetName);
+                if (existingSheet) {
+                    workbook.removeWorksheet(existingSheet.id);
+                }
 
-                // Determine max columns to set text format
+                const newSheet = workbook.addWorksheet(sheetName);
+
+                // Find max columns
                 let maxCols = 0;
                 dataRows.forEach(row => {
                     if (row.length > maxCols) maxCols = row.length;
                 });
 
-                // Set column format to Text ("@") for ALL columns that will have data
+                // Set Text Format for columns
                 for (let i = 1; i <= maxCols; i++) {
                     const col = newSheet.getColumn(i);
-                    col.numFmt = '@'; // Text format
+                    col.numFmt = '@'; 
                 }
 
-                // Add rows to new sheet
-                newSheet.addRows(dataRows);
+                // Add rows, but explicitly handle cells
+                dataRows.forEach(rowValues => {
+                   const row = newSheet.addRow(rowValues);
+                   // Force each cell to be string type to avoid auto-conversion
+                   row.eachCell((cell) => {
+                       cell.value = String(cell.value); 
+                       cell.numFmt = '@';
+                   });
+                   row.commit();
+                });
 
-                // Generate output buffer
                 const outputBuffer = await workbook.xlsx.writeBuffer();
+
                 const blob = new Blob([outputBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
                 const originalNameBase = dataFile.name.replace(/\.[^/.]+$/, "");
